@@ -2,9 +2,6 @@ FROM infrablocks/alpine-aws-s3-config:0.18.0
 
 ENV GRAFANA_VERSION 7.1.4
 
-wget https://dl.grafana.com/oss/release/grafana-7.1.4.linux-amd64.tar.gz
-tar -zxvf grafana-7.1.4.linux-amd64.tar.gz
-
 RUN cd /tmp \
     && curl \
         -L "https://dl.grafana.com/oss/release/grafana-${GRAFANA_VERSION}.linux-amd64.tar.gz" \
