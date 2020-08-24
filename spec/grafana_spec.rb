@@ -34,7 +34,7 @@ describe 'grafana' do
     after(:all, &:reset_docker_backend)
 
     it "includes the grafana-server command" do
-      expect(command('/opt/grafana/bin/grafana-server --version').stderr)
+      expect(command('/opt/grafana/bin/grafana-server -v').stdout)
           .to(match(/7.1.4/))
     end
   end
