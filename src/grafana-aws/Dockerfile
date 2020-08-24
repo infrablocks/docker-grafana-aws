@@ -16,6 +16,13 @@ COPY --from=src-builder \
     /usr/share/grafana \
     /opt/grafana
 
+RUN apk \
+    --verbose \
+    --no-cache \
+    add \
+        openssl \
+        tzdata
+
 RUN addgroup -S -g $WITH_GRAFANA_GID grafana && \
     adduser -S -u $WITH_GRAFANA_UID -G grafana grafana
 

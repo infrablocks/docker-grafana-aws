@@ -6,4 +6,7 @@ set -e
 echo "Running grafana."
 exec /opt/grafana/bin/grafana-server \
     --homepath="/opt/grafana" \
-    --config="/opt/grafana/conf/grafana.ini"
+    --config="/opt/grafana/conf/grafana.ini" \
+    --packaging="docker" \
+    "$@" \
+    cfg:default.log.mode="console"

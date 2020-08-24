@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-describe 'grafana' do
+describe 'entrypoint' do
   metadata_service_url = 'http://metadata:1338'
   s3_endpoint_url = 'http://s3:4566'
   s3_bucket_region = 'us-east-1'
@@ -30,16 +30,7 @@ describe 'grafana' do
     set :docker_container_create_options, extra
   end
 
-  describe 'command' do
-    after(:all, &:reset_docker_backend)
-
-    it "includes the grafana-server command" do
-      expect(command('/opt/grafana/bin/grafana-server -v').stdout)
-          .to(match(/7.1.4/))
-    end
-  end
-
-  describe 'entrypoint' do
+  describe 'by default' do
     before(:all) do
       create_env_file(
           endpoint_url: s3_endpoint_url,
@@ -48,7 +39,8 @@ describe 'grafana' do
           object_path: s3_env_file_object_path)
 
       execute_docker_entrypoint(
-          started_indicator: "HTTP Server Listen")
+          started_indicator: "HTTP Server Listen",
+          arguments: ['--tracing', '--tracing-file=/opt/grafana/trace.out'])
     end
 
     after(:all, &:reset_docker_backend)
@@ -57,9 +49,41 @@ describe 'grafana' do
       expect(process('/opt/grafana/bin/grafana-server')).to(be_running)
     end
 
+    it 'points at the correct installation directory' do
+      expect(process('/opt/grafana/bin/grafana-server').args)
+          .to(match(/--homepath=\/opt\/grafana/))
+    end
+
     it 'points at the correct configuration file' do
       expect(process('/opt/grafana/bin/grafana-server').args)
           .to(match(/--config=\/opt\/grafana\/conf\/grafana.ini/))
+    end
+
+    it 'points uses docker packaging' do
+      expect(process('/opt/grafana/bin/grafana-server').args)
+          .to(match(/--packaging=docker/))
+    end
+
+    it 'uses a default log mode of console' do
+      expect(process('/opt/grafana/bin/grafana-server').args)
+          .to(match(/cfg:default.log.mode=console/))
+    end
+
+    it 'passes additional arguments to grafana-server command' do
+      expect(process('/opt/grafana/bin/grafana-server').args)
+          .to(match(/--tracing/))
+      expect(process('/opt/grafana/bin/grafana-server').args)
+          .to(match(/--tracing-file=\/opt\/grafana\/trace.out/))
+    end
+
+    it 'runs with the grafana user' do
+      expect(process('/opt/grafana/bin/grafana-server').user)
+          .to(eq('grafana'))
+    end
+
+    it 'runs with the grafana group' do
+      expect(process('/opt/grafana/bin/grafana-server').group)
+          .to(eq('grafana'))
     end
   end
 
@@ -106,9 +130,12 @@ describe 'grafana' do
 
   def execute_docker_entrypoint(opts)
     logfile_path = '/tmp/docker-entrypoint.log'
+    arguments = opts[:arguments] && !opts[:arguments].empty? ?
+        " #{opts[:arguments].join(' ')}" : ''
 
     execute_command(
-        "docker-entrypoint.sh > #{logfile_path} 2>&1 &")
+        "docker-entrypoint.sh#{arguments} " +
+            "> #{logfile_path} 2>&1 &")
 
     begin
       Octopoller.poll(timeout: 5) do
