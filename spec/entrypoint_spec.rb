@@ -64,9 +64,30 @@ describe 'entrypoint' do
           .to(match(/--packaging=docker/))
     end
 
-    it 'uses a default log mode of console' do
+    it 'uses a log mode of console' do
       expect(process('/opt/grafana/bin/grafana-server').args)
           .to(match(/cfg:default.log.mode=console/))
+    end
+
+    it 'uses a data path of /var/opt/grafana' do
+      expect(process('/opt/grafana/bin/grafana-server').args)
+          .to(match(/cfg:default.paths.data=\/var\/opt\/grafana/))
+    end
+
+    it 'uses a logs path of /var/log/grafana' do
+      expect(process('/opt/grafana/bin/grafana-server').args)
+          .to(match(/cfg:default.paths.logs=\/var\/log\/grafana/))
+    end
+
+    it 'uses a plugins path of /opt/grafana/plugins' do
+      expect(process('/opt/grafana/bin/grafana-server').args)
+          .to(match(/cfg:default.paths.plugins=\/opt\/grafana\/plugins/))
+    end
+
+    it 'uses a provisioning path of /opt/grafana/provisioning' do
+      expect(process('/opt/grafana/bin/grafana-server').args)
+          .to(match(
+              /cfg:default.paths.provisioning=\/opt\/grafana\/provisioning/))
     end
 
     it 'passes additional arguments to grafana-server command' do

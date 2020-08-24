@@ -10,11 +10,17 @@ ARG WITH_GRAFANA_VERSION
 ARG WITH_GRAFANA_UID
 ARG WITH_GRAFANA_GID
 
-ENV GRAFANA_VERSION=${WITH_GRAFANA_VERSION}
+ENV GRAFANA_VERSION=${WITH_GRAFANA_VERSION} \
+    GRAFANA_PATHS_HOME="/opt/grafana" \
+    GRAFANA_PATHS_PLUGINS="/opt/grafana/plugins" \
+    GRAFANA_PATHS_PROVISIONING="/opt/grafana/provisioning" \
+    GRAFANA_PATHS_CONFIG="/opt/grafana/conf/grafana.ini" \
+    GRAFANA_PATHS_DATA="/var/opt/grafana" \
+    GRAFANA_PATHS_LOGS="/var/log/grafana"
 
 COPY --from=src-builder \
     /usr/share/grafana \
-    /opt/grafana
+    "$GRAFANA_PATHS_HOME"
 
 RUN apk \
     --verbose \
@@ -26,16 +32,35 @@ RUN apk \
 RUN addgroup -S -g $WITH_GRAFANA_GID grafana && \
     adduser -S -u $WITH_GRAFANA_UID -G grafana grafana
 
-RUN cp /opt/grafana/conf/sample.ini /opt/grafana/conf/grafana.ini
+RUN mkdir -p \
+        "$GRAFANA_PATHS_PROVISIONING/datasources" \
+        "$GRAFANA_PATHS_PROVISIONING/dashboards" \
+        "$GRAFANA_PATHS_PROVISIONING/notifiers" \
+        "$GRAFANA_PATHS_PROVISIONING/plugins" \
+        "$GRAFANA_PATHS_LOGS" \
+        "$GRAFANA_PATHS_PLUGINS" \
+        "$GRAFANA_PATHS_DATA" && \
+    cp \
+        "$GRAFANA_PATHS_HOME/conf/sample.ini" \
+        "$GRAFANA_PATHS_HOME/conf/grafana.ini" && \
+    chown -R grafana:grafana \
+        "$GRAFANA_PATHS_HOME" \
+        "$GRAFANA_PATHS_PROVISIONING" \
+        "$GRAFANA_PATHS_LOGS" \
+        "$GRAFANA_PATHS_PLUGINS" \
+        "$GRAFANA_PATHS_DATA" && \
+    chmod -R 777 \
+        "$GRAFANA_PATHS_PROVISIONING" \
+        "$GRAFANA_PATHS_LOGS" \
+        "$GRAFANA_PATHS_PLUGINS" \
+        "$GRAFANA_PATHS_DATA"
 
-RUN chown -R grafana:grafana /opt/grafana
+COPY start.sh "$GRAFANA_PATHS_HOME/bin/start.sh"
 
-COPY start.sh /opt/grafana/bin/start.sh
-
-RUN chmod +x /opt/grafana/bin/start.sh
+RUN chmod +x "$GRAFANA_PATHS_HOME/bin/start.sh"
 
 EXPOSE 3000
 
 USER grafana
 
-ENV STARTUP_SCRIPT_PATH=/opt/grafana/bin/start.sh
+ENV STARTUP_SCRIPT_PATH="$GRAFANA_PATHS_HOME/bin/start.sh"
