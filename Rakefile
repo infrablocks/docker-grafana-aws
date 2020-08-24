@@ -92,7 +92,7 @@ namespace :image do
 
     t.copy_spec = [
         "src/grafana-aws/Dockerfile",
-        "src/grafana-aws/docker-entrypoint.sh"
+        "src/grafana-aws/start.sh"
     ]
 
     t.repository_name = 'grafana-aws'
