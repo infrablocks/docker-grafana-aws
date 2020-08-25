@@ -24,14 +24,6 @@ if [ $permissions_ok -eq 1 ]; then
     exit
 fi
 
-if [ ! -d "$GRAFANA_PATHS_PLUGINS" ]; then
-    mkdir -p "$GRAFANA_PATHS_PLUGINS"
-fi
-
-for var_name in ${!GRAFANA@}; do
-    export GF"${var_name#GRAFANA}"="${!var_name}"
-done
-
 if [ -n "${GRAFANA_AWS_PROFILES+x}" ]; then
     credentials_path="$GRAFANA_PATHS_HOME/.aws/credentials"
 
@@ -56,6 +48,36 @@ if [ -n "${GRAFANA_AWS_PROFILES+x}" ]; then
 
     chmod 600 "$credentials_path"
 fi
+
+if [ ! -d "$GRAFANA_PATHS_PLUGINS" ]; then
+    mkdir -p "$GRAFANA_PATHS_PLUGINS"
+fi
+
+if [ -n "${GRAFANA_INSTALL_PLUGINS}" ]; then
+    for plugin in ${GRAFANA_INSTALL_PLUGINS//,/ }; do
+        if [[ $plugin =~ .*\;.* ]]; then
+          plugin_url=$(echo "$plugin" | cut -d';' -f 1)
+          plugin_without_url=$(echo "$plugin" | cut -d';' -f 2)
+
+          /opt/grafana/bin/grafana-cli \
+              --pluginsDir "${GRAFANA_PATHS_PLUGINS}" \
+              --pluginUrl "${plugin_url}" \
+              plugins \
+              install \
+              "${plugin_without_url}"
+        else
+          /opt/grafana/bin/grafana-cli \
+              --pluginsDir "${GRAFANA_PATHS_PLUGINS}" \
+              plugins \
+              install \
+              "${plugin}"
+        fi
+    done
+fi
+
+for var_name in ${!GRAFANA@}; do
+    export GF"${var_name#GRAFANA}"="${!var_name}"
+done
 
 echo "Running grafana."
 exec /opt/grafana/bin/grafana-server \

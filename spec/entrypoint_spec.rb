@@ -107,13 +107,13 @@ describe 'entrypoint' do
     end
 
     it 'renames GRAFANA_ environment variables to GF_' do
-        pid = process('/opt/grafana/bin/grafana').pid
-        environment_contents =
-            command("tr '\\0' '\\n' < /proc/#{pid}/environ").stdout
-        environment = Dotenv::Parser.call(environment_contents)
+      pid = process('/opt/grafana/bin/grafana').pid
+      environment_contents =
+          command("tr '\\0' '\\n' < /proc/#{pid}/environ").stdout
+      environment = Dotenv::Parser.call(environment_contents)
 
-        expect(environment['GF_LOG_LEVEL']).to(eq('debug'))
-        expect(environment['GF_SERVER_HTTP_PORT']).to(eq('2999'))
+      expect(environment['GF_LOG_LEVEL']).to(eq('debug'))
+      expect(environment['GF_SERVER_HTTP_PORT']).to(eq('2999'))
     end
 
     it 'runs with the grafana user' do
@@ -285,6 +285,58 @@ describe 'entrypoint' do
     end
   end
 
+  describe 'when plugins are provided by name' do
+    before(:all) do
+      create_env_file(
+          endpoint_url: s3_endpoint_url,
+          region: s3_bucket_region,
+          bucket_path: s3_bucket_path,
+          object_path: s3_env_file_object_path,
+          env: {
+              'GRAFANA_INSTALL_PLUGINS' =>
+                  'grafana-clock-panel,grafana-googlesheets-datasource',
+          })
+
+      execute_docker_entrypoint(
+          started_indicator: "HTTP Server Listen")
+    end
+
+    after(:all, &:reset_docker_backend)
+
+    it 'downloads the indicated plugins' do
+      expect(file('/opt/grafana/plugins/grafana-clock-panel'))
+          .to(exist)
+      expect(file('/opt/grafana/plugins/grafana-googlesheets-datasource'))
+          .to(exist)
+    end
+  end
+
+  describe 'when plugins are provided by name and URL' do
+    before(:all) do
+      create_env_file(
+          endpoint_url: s3_endpoint_url,
+          region: s3_bucket_region,
+          bucket_path: s3_bucket_path,
+          object_path: s3_env_file_object_path,
+          env: {
+              'GRAFANA_INSTALL_PLUGINS' =>
+                  'https://github.com/flant/grafana-statusmap/' +
+                      'archive/v0.3.1.zip;' +
+                      'grafana-statusmap'
+          })
+
+      execute_docker_entrypoint(
+          started_indicator: "HTTP Server Listen")
+    end
+
+    after(:all, &:reset_docker_backend)
+
+    it 'downloads the indicated plugins' do
+      expect(file('/opt/grafana/plugins/grafana-statusmap'))
+          .to(exist)
+    end
+  end
+
   def reset_docker_backend
     Specinfra::Backend::Docker.instance.send :cleanup_container
     Specinfra::Backend::Docker.clear
@@ -336,7 +388,7 @@ describe 'entrypoint' do
             "> #{logfile_path} 2>&1 &")
 
     begin
-      Octopoller.poll(timeout: 5) do
+      Octopoller.poll(timeout: 15) do
         docker_entrypoint_log = command("cat #{logfile_path}").stdout
         docker_entrypoint_log =~ /#{opts[:started_indicator]}/ ?
             docker_entrypoint_log :
