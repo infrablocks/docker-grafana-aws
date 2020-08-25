@@ -69,6 +69,11 @@ describe 'entrypoint' do
           .to(match(/cfg:default.log.mode=console/))
     end
 
+    it 'logs using JSON' do
+      expect(process('/opt/grafana/bin/grafana-server').args)
+          .to(match(/cfg:default.log.console.format=json/))
+    end
+
     it 'uses a data path of /var/opt/grafana' do
       expect(process('/opt/grafana/bin/grafana-server').args)
           .to(match(/cfg:default.paths.data=\/var\/opt\/grafana/))
@@ -105,6 +110,84 @@ describe 'entrypoint' do
     it 'runs with the grafana group' do
       expect(process('/opt/grafana/bin/grafana-server').group)
           .to(eq('grafana'))
+    end
+  end
+
+  describe 'when the config file is not readable' do
+    before(:all) do
+      create_env_file(
+          endpoint_url: s3_endpoint_url,
+          region: s3_bucket_region,
+          bucket_path: s3_bucket_path,
+          object_path: s3_env_file_object_path,
+          env: {
+              "GRAFANA_PATHS_CONFIG" => "/grafana.ini"
+          })
+
+      @output = execute_docker_entrypoint(
+          started_indicator: "Error:")
+    end
+
+    after(:all, &:reset_docker_backend)
+
+    it 'errors and exits' do
+      expect(@output)
+          .to(match(
+              "Error: GRAFANA_PATHS_CONFIG='/grafana.ini' is not readable."))
+      expect(@output)
+          .not_to(match(/HTTP Server Listen/))
+    end
+  end
+
+  describe 'when the data directory is not writable' do
+    before(:all) do
+      create_env_file(
+          endpoint_url: s3_endpoint_url,
+          region: s3_bucket_region,
+          bucket_path: s3_bucket_path,
+          object_path: s3_env_file_object_path,
+          env: {
+              "GRAFANA_PATHS_DATA" => "/data"
+          })
+
+      @output = execute_docker_entrypoint(
+          started_indicator: "Error:")
+    end
+
+    after(:all, &:reset_docker_backend)
+
+    it 'errors and exits' do
+      expect(@output)
+          .to(match(
+              "Error: GRAFANA_PATHS_DATA='/data' is not writable."))
+      expect(@output)
+          .not_to(match(/HTTP Server Listen/))
+    end
+  end
+
+  describe 'when the home directory is not readable' do
+    before(:all) do
+      create_env_file(
+          endpoint_url: s3_endpoint_url,
+          region: s3_bucket_region,
+          bucket_path: s3_bucket_path,
+          object_path: s3_env_file_object_path,
+          env: {
+              "GRAFANA_PATHS_HOME" => "/grafana"
+          })
+
+      @output = execute_docker_entrypoint(
+          started_indicator: "Error:")
+    end
+
+    after(:all, &:reset_docker_backend)
+
+    it 'errors and exits' do
+      expect(@output)
+          .to(match(
+              "Error: GRAFANA_PATHS_HOME='/grafana' is not readable."))
+      expect(@output)
+          .not_to(match(/HTTP Server Listen/))
     end
   end
 
