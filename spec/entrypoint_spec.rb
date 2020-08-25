@@ -232,6 +232,50 @@ describe 'entrypoint' do
     end
   end
 
+  describe 'when aws profiles are provided' do
+    before(:all) do
+      create_env_file(
+          endpoint_url: s3_endpoint_url,
+          region: s3_bucket_region,
+          bucket_path: s3_bucket_path,
+          object_path: s3_env_file_object_path,
+          env: {
+              'GRAFANA_AWS_PROFILES' => 'london,ireland,spain',
+
+              # tests region not added if not provided
+              'GRAFANA_AWS_london_ACCESS_KEY_ID' => 'london-access-key',
+              'GRAFANA_AWS_london_SECRET_ACCESS_KEY' => 'london-secret',
+
+              # tests region is added if provided
+              'GRAFANA_AWS_ireland_ACCESS_KEY_ID' => 'ireland-access-key',
+              'GRAFANA_AWS_ireland_SECRET_ACCESS_KEY' => 'ireland-secret',
+              'GRAFANA_AWS_ireland_REGION' => 'eu-west-1',
+
+              # tests profile ignored if incomplete
+              'GRAFANA_AWS_spain_ACCESS_KEY_ID' => 'spain-access-key',
+          })
+
+      execute_docker_entrypoint(
+          started_indicator: "HTTP Server Listen")
+    end
+
+    after(:all, &:reset_docker_backend)
+
+    it 'adds AWS credentials to the credentials file' do
+      aws_credentials = file('/opt/grafana/.aws/credentials').content
+
+      expect(aws_credentials).to(eq(
+          "[london]\n" +
+              "aws_access_key_id = london-access-key\n" +
+              "aws_secret_access_key = london-secret\n" +
+              "[ireland]\n" +
+              "aws_access_key_id = ireland-access-key\n" +
+              "aws_secret_access_key = ireland-secret\n" +
+              "region = eu-west-1\n"
+      ))
+    end
+  end
+
   def reset_docker_backend
     Specinfra::Backend::Docker.instance.send :cleanup_container
     Specinfra::Backend::Docker.clear

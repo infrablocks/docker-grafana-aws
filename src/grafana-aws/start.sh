@@ -28,9 +28,30 @@ if [ ! -d "$GRAFANA_PATHS_PLUGINS" ]; then
     mkdir -p "$GRAFANA_PATHS_PLUGINS"
 fi
 
-for variable in ${!GRAFANA@}; do
-    export GF"${variable#GRAFANA}"="${!variable}"
+for var_name in ${!GRAFANA@}; do
+    export GF"${var_name#GRAFANA}"="${!var_name}"
 done
+
+if [ -n "${GRAFANA_AWS_PROFILES+x}" ]; then
+    credentials_path="$GRAFANA_PATHS_HOME/.aws/credentials"
+
+    for profile in ${GRAFANA_AWS_PROFILES//,/ }; do
+        access_key_id_var_name="GRAFANA_AWS_${profile}_ACCESS_KEY_ID"
+        secret_access_key_var_name="GRAFANA_AWS_${profile}_SECRET_ACCESS_KEY"
+        region_var_name="GRAFANA_AWS_${profile}_REGION"
+
+        if [[ -n "${!access_key_id_var_name}" && -n "${!secret_access_key_var_name}" ]]; then
+            {
+                echo "[${profile}]";
+                echo "aws_access_key_id = ${!access_key_id_var_name}"
+                echo "aws_secret_access_key = ${!secret_access_key_var_name}"
+            } >> "$credentials_path"
+            if [ -n "${!region_var_name}" ]; then
+                echo "region = ${!region_var_name}" >> "$credentials_path"
+            fi
+        fi
+    done
+fi
 
 echo "Running grafana."
 exec /opt/grafana/bin/grafana-server \
