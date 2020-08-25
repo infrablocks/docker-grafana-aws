@@ -274,6 +274,15 @@ describe 'entrypoint' do
               "region = eu-west-1\n"
       ))
     end
+
+    it 'allows only the grafana user to read the credentials file' do
+      expect(file('/opt/grafana/.aws/credentials'))
+          .to(be_mode(600))
+      expect(file('/opt/grafana/.aws/credentials'))
+          .to(be_owned_by('grafana'))
+      expect(file('/opt/grafana/.aws/credentials'))
+          .to(be_grouped_into('grafana'))
+    end
   end
 
   def reset_docker_backend

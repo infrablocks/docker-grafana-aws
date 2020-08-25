@@ -35,6 +35,8 @@ done
 if [ -n "${GRAFANA_AWS_PROFILES+x}" ]; then
     credentials_path="$GRAFANA_PATHS_HOME/.aws/credentials"
 
+    cat /dev/null > "$credentials_path"
+
     for profile in ${GRAFANA_AWS_PROFILES//,/ }; do
         access_key_id_var_name="GRAFANA_AWS_${profile}_ACCESS_KEY_ID"
         secret_access_key_var_name="GRAFANA_AWS_${profile}_SECRET_ACCESS_KEY"
@@ -51,6 +53,8 @@ if [ -n "${GRAFANA_AWS_PROFILES+x}" ]; then
             fi
         fi
     done
+
+    chmod 600 "$credentials_path"
 fi
 
 echo "Running grafana."

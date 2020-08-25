@@ -33,6 +33,7 @@ RUN addgroup -S -g $WITH_GRAFANA_GID grafana && \
     adduser -S -u $WITH_GRAFANA_UID -G grafana grafana
 
 RUN mkdir -p \
+        "$GRAFANA_PATHS_HOME/.aws" \
         "$GRAFANA_PATHS_PROVISIONING/datasources" \
         "$GRAFANA_PATHS_PROVISIONING/dashboards" \
         "$GRAFANA_PATHS_PROVISIONING/notifiers" \
@@ -50,6 +51,7 @@ RUN mkdir -p \
         "$GRAFANA_PATHS_PLUGINS" \
         "$GRAFANA_PATHS_DATA" && \
     chmod -R 777 \
+        "$GRAFANA_PATHS_HOME/.aws" \
         "$GRAFANA_PATHS_PROVISIONING" \
         "$GRAFANA_PATHS_LOGS" \
         "$GRAFANA_PATHS_PLUGINS" \
