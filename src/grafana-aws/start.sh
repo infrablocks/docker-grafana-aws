@@ -24,6 +24,14 @@ if [ $permissions_ok -eq 1 ]; then
     exit
 fi
 
+if [ ! -d "$GRAFANA_PATHS_PLUGINS" ]; then
+    mkdir -p "$GRAFANA_PATHS_PLUGINS"
+fi
+
+for variable in ${!GRAFANA@}; do
+    export GF"${variable#GRAFANA}"="${!variable}"
+done
+
 echo "Running grafana."
 exec /opt/grafana/bin/grafana-server \
     --homepath="$GRAFANA_PATHS_HOME" \

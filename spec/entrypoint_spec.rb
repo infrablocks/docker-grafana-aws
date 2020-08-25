@@ -36,7 +36,11 @@ describe 'entrypoint' do
           endpoint_url: s3_endpoint_url,
           region: s3_bucket_region,
           bucket_path: s3_bucket_path,
-          object_path: s3_env_file_object_path)
+          object_path: s3_env_file_object_path,
+          env: {
+              'GRAFANA_LOG_LEVEL' => 'debug',
+              'GRAFANA_SERVER_HTTP_PORT' => '2999'
+          })
 
       execute_docker_entrypoint(
           started_indicator: "HTTP Server Listen",
@@ -100,6 +104,16 @@ describe 'entrypoint' do
           .to(match(/--tracing/))
       expect(process('/opt/grafana/bin/grafana-server').args)
           .to(match(/--tracing-file=\/opt\/grafana\/trace.out/))
+    end
+
+    it 'renames GRAFANA_ environment variables to GF_' do
+        pid = process('/opt/grafana/bin/grafana').pid
+        environment_contents =
+            command("tr '\\0' '\\n' < /proc/#{pid}/environ").stdout
+        environment = Dotenv::Parser.call(environment_contents)
+
+        expect(environment['GF_LOG_LEVEL']).to(eq('debug'))
+        expect(environment['GF_SERVER_HTTP_PORT']).to(eq('2999'))
     end
 
     it 'runs with the grafana user' do
@@ -188,6 +202,33 @@ describe 'entrypoint' do
               "Error: GRAFANA_PATHS_HOME='/grafana' is not readable."))
       expect(@output)
           .not_to(match(/HTTP Server Listen/))
+    end
+  end
+
+  describe 'when the plugins directory does not exist' do
+    before(:all) do
+      create_env_file(
+          endpoint_url: s3_endpoint_url,
+          region: s3_bucket_region,
+          bucket_path: s3_bucket_path,
+          object_path: s3_env_file_object_path,
+          env: {
+              "GRAFANA_PATHS_PLUGINS" => "/opt/grafana/storage/plugins"
+          })
+
+      execute_docker_entrypoint(
+          started_indicator: "HTTP Server Listen")
+    end
+
+    after(:all, &:reset_docker_backend)
+
+    it 'creates the plugins directory' do
+      expect(file('/opt/grafana/storage/plugins'))
+          .to(be_directory)
+      expect(file('/opt/grafana/storage/plugins'))
+          .to(be_owned_by('grafana'))
+      expect(file('/opt/grafana/storage/plugins'))
+          .to(be_grouped_into('grafana'))
     end
   end
 
