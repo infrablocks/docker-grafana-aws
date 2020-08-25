@@ -125,6 +125,15 @@ describe 'entrypoint' do
       expect(process('/opt/grafana/bin/grafana-server').group)
           .to(eq('grafana'))
     end
+
+    it 'sets HOME to the grafana home directory' do
+      pid = process('/opt/grafana/bin/grafana').pid
+      environment_contents =
+          command("tr '\\0' '\\n' < /proc/#{pid}/environ").stdout
+      environment = Dotenv::Parser.call(environment_contents)
+
+      expect(environment['HOME']).to(eq('/opt/grafana'))
+    end
   end
 
   describe 'when the config file is not readable' do
@@ -336,6 +345,68 @@ describe 'entrypoint' do
           .to(exist)
     end
   end
+
+  describe 'when environment variable values are provided via files' do
+    before(:all) do
+      create_env_file(
+          endpoint_url: s3_endpoint_url,
+          region: s3_bucket_region,
+          bucket_path: s3_bucket_path,
+          object_path: s3_env_file_object_path,
+          env: {
+              'GRAFANA_LOG_LEVEL__FILE' => '/tmp/log-level',
+              'GRAFANA_SERVER_HTTP_PORT__FILE' => '/tmp/server-http-port'
+          })
+
+      execute_command('echo "debug" > /tmp/log-level')
+      execute_command('echo "2999" > /tmp/server-http-port')
+
+      execute_docker_entrypoint(
+          started_indicator: "HTTP Server Listen")
+    end
+
+    after(:all, &:reset_docker_backend)
+
+    it 'exposes the contents of the file as the environment variable' do
+      pid = process('/opt/grafana/bin/grafana').pid
+      environment_contents =
+          command("tr '\\0' '\\n' < /proc/#{pid}/environ").stdout
+      environment = Dotenv::Parser.call(environment_contents)
+
+      expect(environment['GF_LOG_LEVEL']).to(eq('debug'))
+      expect(environment['GF_SERVER_HTTP_PORT']).to(eq('2999'))
+    end
+  end
+
+  describe 'when both file and value provided for environment variable' do
+    before(:all) do
+      create_env_file(
+          endpoint_url: s3_endpoint_url,
+          region: s3_bucket_region,
+          bucket_path: s3_bucket_path,
+          object_path: s3_env_file_object_path,
+          env: {
+              'GRAFANA_LOG_LEVEL' => 'info',
+              'GRAFANA_LOG_LEVEL__FILE' => '/tmp/log-level'
+          })
+
+      execute_command('echo "debug" > /tmp/log-level')
+
+      @output = execute_docker_entrypoint(
+          started_indicator: "Error:")
+    end
+
+    after(:all, &:reset_docker_backend)
+
+    it 'errors and exits' do
+      error_msg =
+          "Error: Both GRAFANA_LOG_LEVEL and GRAFANA_LOG_LEVEL__FILE " +
+              "are set (but are exclusive)."
+
+      expect(@output).to(match(/#{Regexp.escape(error_msg)}/))
+    end
+  end
+
 
   def reset_docker_backend
     Specinfra::Backend::Docker.instance.send :cleanup_container

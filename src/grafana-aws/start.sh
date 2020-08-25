@@ -21,7 +21,7 @@ if [ ! -w "$GRAFANA_PATHS_HOME" ]; then
 fi
 
 if [ $permissions_ok -eq 1 ]; then
-    exit
+    exit 1
 fi
 
 if [ -n "${GRAFANA_AWS_PROFILES+x}" ]; then
@@ -49,6 +49,16 @@ if [ -n "${GRAFANA_AWS_PROFILES+x}" ]; then
     chmod 600 "$credentials_path"
 fi
 
+for var_name in $(env | grep '^GRAFANA_[^=]\+__FILE=.\+' | sed -r "s/([^=]*)__FILE=.*/\1/g"); do
+    var_file_var_name="$var_name"__FILE
+    if [ "${!var_name}" ]; then
+        echo >&2 "Error: Both $var_name and $var_file_var_name are set (but are exclusive)."
+        exit 1
+    fi
+    export "$var_name"="$(< "${!var_file_var_name}")"
+    unset "$var_file_var_name"
+done
+
 if [ ! -d "$GRAFANA_PATHS_PLUGINS" ]; then
     mkdir -p "$GRAFANA_PATHS_PLUGINS"
 fi
@@ -74,6 +84,8 @@ if [ -n "${GRAFANA_INSTALL_PLUGINS}" ]; then
         fi
     done
 fi
+
+export HOME="$GRAFANA_PATHS_HOME"
 
 for var_name in ${!GRAFANA@}; do
     export GF"${var_name#GRAFANA}"="${!var_name}"
