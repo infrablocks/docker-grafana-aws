@@ -108,7 +108,7 @@ describe 'entrypoint' do
 
     it 'renames GRAFANA_ environment variables to GF_' do
       pid = process('/opt/grafana/bin/grafana').pid
-      environment = (command("tr '\\0' '\\n' < /proc/#{pid}/environ").stdout)
+      environment = command("tr '\\0' '\\n' < /proc/#{pid}/environ").stdout
 
       expect(environment).to(contain('GF_LOG_LEVEL=debug'))
       expect(environment).to(contain('GF_SERVER_HTTP_PORT=2999'))
