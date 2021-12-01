@@ -109,7 +109,7 @@ describe 'entrypoint' do
     it 'renames GRAFANA_ environment variables to GF_' do
       pid = process('/opt/grafana/bin/grafana').pid
       environment_contents =
-          command("tr '\\0' '\\n' < /proc/#{pid}/environ").stdout
+        clean_environment_contents(command("tr '\\0' '\\n' < /proc/#{pid}/environ").stdout)
       environment = Dotenv::Parser.call(environment_contents)
 
       expect(environment['GF_LOG_LEVEL']).to(eq('debug'))
@@ -129,7 +129,7 @@ describe 'entrypoint' do
     it 'sets HOME to the grafana home directory' do
       pid = process('/opt/grafana/bin/grafana').pid
       environment_contents =
-          command("tr '\\0' '\\n' < /proc/#{pid}/environ").stdout
+        clean_environment_contents(command("tr '\\0' '\\n' < /proc/#{pid}/environ").stdout)
       environment = Dotenv::Parser.call(environment_contents)
 
       expect(environment['HOME']).to(eq('/opt/grafana'))
@@ -370,7 +370,7 @@ describe 'entrypoint' do
     it 'exposes the contents of the file as the environment variable' do
       pid = process('/opt/grafana/bin/grafana').pid
       environment_contents =
-          command("tr '\\0' '\\n' < /proc/#{pid}/environ").stdout
+        clean_environment_contents(command("tr '\\0' '\\n' < /proc/#{pid}/environ").stdout)
       environment = Dotenv::Parser.call(environment_contents)
 
       expect(environment['GF_LOG_LEVEL']).to(eq('debug'))
@@ -469,5 +469,12 @@ describe 'entrypoint' do
       puts command("cat #{logfile_path}").stdout
       raise e
     end
+  end
+
+  def clean_environment_contents(env_contents)
+    env_contents
+      .split("\n")
+      .reject { |var| var.start_with?(' export') }
+      .join("\n")
   end
 end
