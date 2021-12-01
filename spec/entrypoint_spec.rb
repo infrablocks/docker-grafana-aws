@@ -108,12 +108,10 @@ describe 'entrypoint' do
 
     it 'renames GRAFANA_ environment variables to GF_' do
       pid = process('/opt/grafana/bin/grafana').pid
-      environment_contents =
-          command("tr '\\0' '\\n' < /proc/#{pid}/environ").stdout
-      environment = Dotenv::Parser.call(environment_contents)
+      environment = command("tr '\\0' '\\n' < /proc/#{pid}/environ").stdout
 
-      expect(environment['GF_LOG_LEVEL']).to(eq('debug'))
-      expect(environment['GF_SERVER_HTTP_PORT']).to(eq('2999'))
+      expect(environment).to(contain('GF_LOG_LEVEL=debug'))
+      expect(environment).to(contain('GF_SERVER_HTTP_PORT=2999'))
     end
 
     it 'runs with the grafana user' do
@@ -128,11 +126,9 @@ describe 'entrypoint' do
 
     it 'sets HOME to the grafana home directory' do
       pid = process('/opt/grafana/bin/grafana').pid
-      environment_contents =
-          command("tr '\\0' '\\n' < /proc/#{pid}/environ").stdout
-      environment = Dotenv::Parser.call(environment_contents)
+      environment = command("tr '\\0' '\\n' < /proc/#{pid}/environ").stdout
 
-      expect(environment['HOME']).to(eq('/opt/grafana'))
+      expect(environment).to(contain('HOME=/opt/grafana'))
     end
   end
 
@@ -369,12 +365,10 @@ describe 'entrypoint' do
 
     it 'exposes the contents of the file as the environment variable' do
       pid = process('/opt/grafana/bin/grafana').pid
-      environment_contents =
-          command("tr '\\0' '\\n' < /proc/#{pid}/environ").stdout
-      environment = Dotenv::Parser.call(environment_contents)
+      environment = command("tr '\\0' '\\n' < /proc/#{pid}/environ").stdout
 
-      expect(environment['GF_LOG_LEVEL']).to(eq('debug'))
-      expect(environment['GF_SERVER_HTTP_PORT']).to(eq('2999'))
+      expect(environment).to(contain('GF_LOG_LEVEL=debug'))
+      expect(environment).to(contain('GF_SERVER_HTTP_PORT=2999'))
     end
   end
 
