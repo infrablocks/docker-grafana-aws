@@ -1,9 +1,11 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 
 describe 'commands' do
   image = 'grafana-aws:latest'
   extra = {
-      'Entrypoint' => '/bin/sh',
+    'Entrypoint' => '/bin/sh'
   }
 
   before(:all) do
@@ -14,9 +16,9 @@ describe 'commands' do
 
   after(:all, &:reset_docker_backend)
 
-  it "includes the grafana-server command" do
+  it 'includes the grafana-server command' do
     expect(command('/opt/grafana/bin/grafana-server -v').stdout)
-        .to(match(/7.1.4/))
+      .to(match(/7.1.4/))
   end
 
   def reset_docker_backend

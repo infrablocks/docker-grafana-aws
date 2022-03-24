@@ -1,9 +1,11 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 
 describe 'packages' do
   image = 'grafana-aws:latest'
   extra = {
-      'Entrypoint' => '/bin/sh',
+    'Entrypoint' => '/bin/sh'
   }
 
   before(:all) do
@@ -14,7 +16,7 @@ describe 'packages' do
 
   after(:all, &:reset_docker_backend)
 
-  ['ca-certificates', 'tzdata', 'openssl', 'musl-utils'].each do |apk|
+  %w[ca-certificates tzdata openssl musl-utils].each do |apk|
     it "includes the #{apk} package" do
       expect(package(apk)).to(be_installed)
     end
