@@ -18,7 +18,7 @@ describe 'commands' do
 
   it 'includes the grafana-server command' do
     expect(command('/opt/grafana/bin/grafana-server -v').stdout)
-      .to(match(/7.1.4/))
+      .to(match(/9.3.2/))
   end
 
   def reset_docker_backend

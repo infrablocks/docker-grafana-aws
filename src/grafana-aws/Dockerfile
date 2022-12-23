@@ -1,10 +1,10 @@
-ARG WITH_GRAFANA_VERSION="7.1.4"
+ARG WITH_GRAFANA_VERSION="9.3.2"
 ARG WITH_GRAFANA_UID="472"
 ARG WITH_GRAFANA_GID="472"
 
 FROM grafana/grafana:${WITH_GRAFANA_VERSION} as src-builder
 
-FROM infrablocks/alpine-aws-s3-config:0.22.0
+FROM infrablocks/alpine-aws-s3-config:0.23.0
 
 ARG WITH_GRAFANA_VERSION
 ARG WITH_GRAFANA_UID
