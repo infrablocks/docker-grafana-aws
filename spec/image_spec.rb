@@ -5,7 +5,7 @@ require 'spec_helper'
 describe 'image' do
   image = 'grafana-aws:latest'
   extra = {
-    'Entrypoint' => '/bin/sh'
+    'Entrypoint' => ['/bin/sh']
   }
 
   before(:all) do

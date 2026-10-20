@@ -19,7 +19,7 @@ describe 'entrypoint' do
   }
   image = 'grafana-aws:latest'
   extra = {
-    'Entrypoint' => '/bin/sh',
+    'Entrypoint' => ['/bin/sh'],
     'HostConfig' => {
       'NetworkMode' => 'docker_grafana_aws_test_default'
     }
